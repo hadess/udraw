@@ -16,18 +16,26 @@
 #include <linux/device.h>
 #include <linux/hid.h>
 #include <linux/module.h>
-#include "hid-ids.h"
+//#include "hid-ids.h"
 
 MODULE_AUTHOR("Bastien Nocera <hadess@hadess.net>");
 MODULE_DESCRIPTION("PS3 uDraw tablet driver");
 MODULE_LICENSE("GPL");
 
-#define KEY_MASK		0x0F
-#define TWO_PACKETS_MASK	0x40
-
 /*
  * Protocol information from:
  * http://brandonw.net/udraw/
+ * and the source code of:
+ * https://vvvv.org/contribution/udraw-hid
+ */
+
+/*
+ * The device is setup with multiple input devices to make it easier
+ * to handle in user-space:
+ * - the touch area which works as a touchpad
+ * - the tablet area which works as a touchpad/drawing tablet
+ * - a joypad with a d-pad, and 7 buttons
+ * - an optional, disabled by default, accelerometer device
  */
 
 static const unsigned short udraw_key_table[] = {
@@ -51,14 +59,12 @@ static const unsigned short udraw_key_table[] = {
 };
 
 struct udraw {
-	struct input_dev *input_dev;
-	struct hid_device *hid;
+	struct input_dev *joy_input_dev;
+	struct input_dev *touch_input_dev;
+	struct hid_device *hdev;
 	unsigned short keymap[ARRAY_SIZE(udraw_key_table)];
-	spinlock_t lock;		/* protects .current_key */
-	int current_key;		/* the currently pressed key */
-	int prev_key_idx;		/* key index in a 2 packets message */
 };
-
+#if 0
 static int get_key(int data)
 {
 	/*
@@ -93,13 +99,13 @@ static int get_key(int data)
 	return key;
 }
 
-static void key_up(struct hid_device *hid, struct udraw *udraw, int key)
+static void key_up(struct hid_device *hdev, struct udraw *udraw, int key)
 {
 	input_report_key(udraw->input_dev, key, 0);
 	input_sync(udraw->input_dev);
 }
 
-static void key_down(struct hid_device *hid, struct udraw *udraw, int key)
+static void key_down(struct hid_device *hdev, struct udraw *udraw, int key)
 {
 	input_report_key(udraw->input_dev, key, 1);
 	input_sync(udraw->input_dev);
@@ -109,25 +115,14 @@ static void battery_flat(struct udraw *udraw)
 {
 	dev_err(&udraw->input_dev->dev, "possible flat battery?\n");
 }
-
-static void key_up_tick(unsigned long data)
-{
-	struct udraw *udraw = (struct udraw *)data;
-	struct hid_device *hid = udraw->hid;
-	unsigned long flags;
-
-	spin_lock_irqsave(&udraw->lock, flags);
-	if (udraw->current_key) {
-		key_up(hid, udraw, udraw->current_key);
-		udraw->current_key = 0;
-	}
-	spin_unlock_irqrestore(&udraw->lock, flags);
-}
-
-static int udraw_raw_event(struct hid_device *hid, struct hid_report *report,
+#endif
+static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	 u8 *data, int len)
 {
-	struct udraw *udraw = hid_get_drvdata(hid);
+	struct udraw *udraw = hid_get_drvdata(hdev);
+
+	if (len != 0x1B)
+		goto out;
 
 #if 0
 	static const u8 keydown[] = { 0x25, 0x87, 0xee };
@@ -194,15 +189,48 @@ out:
 	return 0;
 }
 
-static int udraw_input_configured(struct hid_device *hid,
-		struct hid_input *hidinput)
+static int udraw_open(struct input_dev *dev)
 {
-	struct input_dev *input_dev = hidinput->input;
-	struct udraw *udraw = hid_get_drvdata(hid);
-	int i;
+	struct udraw *udraw = input_get_drvdata(dev);
 
-	udraw->input_dev = input_dev;
+	return hid_hw_open(udraw->hdev);
+}
 
+static void udraw_close(struct input_dev *dev)
+{
+	struct udraw *udraw = input_get_drvdata(dev);
+
+	hid_hw_close(udraw->hdev);
+}
+
+static struct input_dev *udraw_setup_touch(struct hid_device *hdev)
+{
+	struct input_dev *input_dev;
+
+	input_dev = input_allocate_device();
+	if (!input_dev)
+		return NULL;
+
+	input_dev->name = hdev->name;
+	input_dev->phys = hdev->phys;
+	input_dev->dev.parent = &hdev->dev;
+	input_dev->open = udraw_open;
+	input_dev->close = udraw_close;
+	input_dev->uniq = hdev->uniq;
+	input_dev->id.bustype = hdev->bus;
+	input_dev->id.vendor  = hdev->vendor;
+	input_dev->id.product = hdev->product;
+	input_dev->id.version = hdev->version;
+	input_set_drvdata(input_dev, hid_get_drvdata(hdev));
+
+	//FIXME setup the keys
+
+	return input_dev;
+}
+
+static void udraw_setup_joypad(struct input_dev *input_dev)
+{
+#if 0
 	input_dev->keycode = udraw->keymap;
 	input_dev->keycodesize = sizeof(unsigned short);
 	input_dev->keycodemax = ARRAY_SIZE(udraw->keymap);
@@ -213,18 +241,38 @@ static int udraw_input_configured(struct hid_device *hid,
 	for (i = 0; i < ARRAY_SIZE(udraw_key_table); i++)
 		set_bit(udraw->keymap[i], input_dev->keybit);
 	clear_bit(KEY_RESERVED, input_dev->keybit);
+#endif
+}
+
+static int udraw_input_configured(struct hid_device *hdev,
+		struct hid_input *hidinput)
+{
+	struct input_dev *input_dev = hidinput->input;
+	struct udraw *udraw = hid_get_drvdata(hdev);
+	int i;
+
+	udraw->joy_input_dev = input_dev;
+	udraw_setup_joypad(input_dev);
+
+	udraw->touch_input_dev = udraw_setup_touch(hdev);
+	if (!udraw->touch_input_dev)
+		return -1;
+
+	//FIXME
+	// udraw_setup_pen
+	// udraw_setup_accel
 
 	return 0;
 }
 
-static int udraw_input_mapping(struct hid_device *hid,
+static int udraw_input_mapping(struct hid_device *hdev,
 		struct hid_input *hi, struct hid_field *field,
 		struct hid_usage *usage, unsigned long **bit, int *max)
 {
 	return -1;
 }
 
-static int udraw_probe(struct hid_device *hid, const struct hid_device_id *id)
+static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 {
 	int ret;
 	struct udraw *udraw;
@@ -235,27 +283,22 @@ static int udraw_probe(struct hid_device *hid, const struct hid_device_id *id)
 		goto allocfail;
 	}
 
-	udraw->hid = hid;
+	udraw->hdev = hdev;
 
 	/* force input as some remotes bypass the input registration */
-	hid->quirks |= HID_QUIRK_HIDINPUT_FORCE;
+	hdev->quirks |= HID_QUIRK_HIDINPUT_FORCE;
 
-#if 0
-	spin_lock_init(&udraw->lock);
-	setup_timer(&udraw->key_up_timer,
-		    key_up_tick, (unsigned long) udraw);
-#endif
-	hid_set_drvdata(hid, udraw);
+	hid_set_drvdata(hdev, udraw);
 
-	ret = hid_parse(hid);
+	ret = hid_parse(hdev);
 	if (ret) {
-		hid_err(hid, "parse failed\n");
+		hid_err(hdev, "parse failed\n");
 		goto fail;
 	}
 
-	ret = hid_hw_start(hid, HID_CONNECT_DEFAULT | HID_CONNECT_HIDDEV_FORCE);
+	ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT | HID_CONNECT_HIDDEV_FORCE);
 	if (ret) {
-		hid_err(hid, "hw start failed\n");
+		hid_err(hdev, "hw start failed\n");
 		goto fail;
 	}
 
@@ -266,11 +309,10 @@ allocfail:
 	return ret;
 }
 
-static void udraw_remove(struct hid_device *hid)
+static void udraw_remove(struct hid_device *hdev)
 {
-	struct udraw *udraw = hid_get_drvdata(hid);
-	hid_hw_stop(hid);
-	//del_timer_sync(&udraw->key_up_timer);
+	struct udraw *udraw = hid_get_drvdata(hdev);
+	hid_hw_stop(hdev);
 	kfree(udraw);
 }
 
