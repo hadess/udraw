@@ -299,9 +299,9 @@ static struct input_dev *udraw_setup_touch(struct udraw *udraw,
 	input_dev->evbit[0] = BIT(EV_ABS) | BIT(EV_KEY);
 
 	set_bit(ABS_X, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_X, 0, 1920, 0, 0);
+	input_set_abs_params(input_dev, ABS_X, 0, 1920, 1, 0);
 	set_bit(ABS_Y, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_X, 0, 1080, 0, 0);
+	input_set_abs_params(input_dev, ABS_Y, 0, 1080, 1, 0);
 
 	set_bit(BTN_TOOL_DOUBLETAP, input_dev->keybit);
 	set_bit(BTN_TOUCH, input_dev->keybit);
