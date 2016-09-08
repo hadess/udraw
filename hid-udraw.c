@@ -48,6 +48,8 @@ static const unsigned short udraw_joy_key_table[] = {
 	BTN_MODE
 };
 
+#define DEVICE_NAME "THQ uDraw Game Tablet for PS3"
+
 struct udraw {
 	struct input_dev *joy_input_dev;
 	struct input_dev *touch_input_dev;
@@ -193,7 +195,7 @@ static void udraw_close(struct input_dev *dev)
 }
 
 static struct input_dev *allocate_and_setup(struct hid_device *hdev,
-		const char *suffix)
+		const char *name)
 {
 	struct input_dev *input_dev;
 
@@ -201,8 +203,7 @@ static struct input_dev *allocate_and_setup(struct hid_device *hdev,
 	if (!input_dev)
 		return NULL;
 
-	snprintf((char *) input_dev->name, sizeof(input_dev->name),
-			"%s (%s)", hdev->name, suffix);
+	input_dev->name = name;
 	input_dev->phys = hdev->phys;
 	input_dev->dev.parent = &hdev->dev;
 	input_dev->open = udraw_open;
@@ -222,7 +223,7 @@ static struct input_dev *udraw_setup_touch(struct udraw *udraw,
 {
 	struct input_dev *input_dev;
 
-	input_dev = allocate_and_setup(hdev, "touchpad");
+	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (touchpad)");
 	if (!input_dev)
 		return NULL;
 
@@ -248,7 +249,7 @@ static struct input_dev *udraw_setup_pen(struct udraw *udraw,
 {
 	struct input_dev *input_dev;
 
-	input_dev = allocate_and_setup(hdev, "pen");
+	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (pen)");
 	if (!input_dev)
 		return NULL;
 
@@ -273,7 +274,7 @@ static struct input_dev *udraw_setup_accel(struct udraw *udraw,
 {
 	struct input_dev *input_dev;
 
-	input_dev = allocate_and_setup(hdev, "accelerometer");
+	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (accelerometer)");
 	if (!input_dev)
 		return NULL;
 
