@@ -280,6 +280,7 @@ static struct input_dev *udraw_setup_accel(struct udraw *udraw,
 
 	input_dev->evbit[0] = BIT(EV_ABS);
 
+	//FIXME the default values are wrong
 	set_bit(ABS_RX, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_RX, 0, 1920, 1, 0);
 	set_bit(ABS_RY, input_dev->absbit);
