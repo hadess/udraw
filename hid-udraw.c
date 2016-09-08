@@ -52,68 +52,21 @@ struct udraw {
 	struct input_dev *joy_input_dev;
 	struct input_dev *touch_input_dev;
 	bool touch_input_dev_registered;
+	struct input_dev *pen_input_dev;
+	bool pen_input_dev_registered;
+	struct input_dev *accel_input_dev;
+	bool accel_input_dev_registered;
 	struct hid_device *hdev;
 };
-#if 0
-static int get_key(int data)
-{
-	/*
-	 * The key is coded accross bits 2..9:
-	 *
-	 * 0x00 or 0x01 (        )	key:  0		-> KEY_RESERVED
-	 * 0x02 or 0x03 (  menu  )	key:  1		-> KEY_MENU
-	 * 0x04 or 0x05 (   >"   )	key:  2		-> KEY_PLAYPAUSE
-	 * 0x06 or 0x07 (   >>   )	key:  3		-> KEY_FORWARD
-	 * 0x08 or 0x09 (   <<   )	key:  4		-> KEY_BACK
-	 * 0x0a or 0x0b (    +   )	key:  5		-> KEY_VOLUMEUP
-	 * 0x0c or 0x0d (    -   )	key:  6		-> KEY_VOLUMEDOWN
-	 * 0x0e or 0x0f (        )	key:  7		-> KEY_RESERVED
-	 * 0x50 or 0x51 (        )	key:  8		-> KEY_RESERVED
-	 * 0x52 or 0x53 (        )	key:  9		-> KEY_RESERVED
-	 * 0x54 or 0x55 (        )	key: 10		-> KEY_RESERVED
-	 * 0x56 or 0x57 (        )	key: 11		-> KEY_RESERVED
-	 * 0x58 or 0x59 (        )	key: 12		-> KEY_RESERVED
-	 * 0x5a or 0x5b (        )	key: 13		-> KEY_RESERVED
-	 * 0x5c or 0x5d ( middle )	key: 14		-> KEY_ENTER
-	 * 0x5e or 0x5f (   >"   )	key: 15		-> KEY_PLAYPAUSE
-	 *
-	 * Packets starting with 0x5 are part of a two-packets message,
-	 * we notify the caller by sending a negative value.
-	 */
-	int key = (data >> 1) & KEY_MASK;
 
-	if ((data & TWO_PACKETS_MASK))
-		/* Part of a 2 packets-command */
-		key = -key;
-
-	return key;
-}
-
-static void key_up(struct hid_device *hdev, struct udraw *udraw, int key)
-{
-	input_report_key(udraw->input_dev, key, 0);
-	input_sync(udraw->input_dev);
-}
-
-static void key_down(struct hid_device *hdev, struct udraw *udraw, int key)
-{
-	input_report_key(udraw->input_dev, key, 1);
-	input_sync(udraw->input_dev);
-}
-
-static void battery_flat(struct udraw *udraw)
-{
-	dev_err(&udraw->input_dev->dev, "possible flat battery?\n");
-}
-#endif
 static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	 u8 *data, int len)
 {
 	struct udraw *udraw = hid_get_drvdata(hdev);
-	int x, y;
+	int x, y, z;
 
 	if (len != 0x1B)
-		goto out;
+		return 0;
 
 	/* joypad */
 	input_report_key(udraw->joy_input_dev, BTN_WEST, data[0] & 1);
@@ -125,7 +78,6 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	input_report_key(udraw->joy_input_dev, BTN_START, data[1] & 2);
 	input_report_key(udraw->joy_input_dev, BTN_MODE, data[1] & 16);
 
-	//???
 	x = y = 0;
 	switch (data[2]) {
 	case 0x0:
@@ -167,8 +119,9 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 
 	/* touchpad */
 	x = y = 0;
-	/* Finger(s) in use */
+	/* Finger(s) in use? */
 	if (data[11] == 0x80 || data[11] >= 191) {
+		bool single_touch = (data[11] == 0x80);
 		if (data[15] != 0x0F && data[17] != 0xFF)
 			x = data[15] * 256 + data[17];
 		if (data[16] != 0x0F && data[18] != 0xFF)
@@ -176,9 +129,9 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 
 		input_report_key(udraw->touch_input_dev, BTN_TOUCH, 1);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_FINGER,
-				(data[11] == 0x80));
+				single_touch);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_DOUBLETAP,
-				(data[11] != 0x80));
+				!single_touch);
 
 		input_report_abs(udraw->touch_input_dev, ABS_X, x);
 		input_report_abs(udraw->touch_input_dev, ABS_Y, y);
@@ -188,67 +141,39 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_DOUBLETAP, 0);
 	}
 	input_sync(udraw->touch_input_dev);
-#if 0
-	static const u8 keydown[] = { 0x25, 0x87, 0xee };
-	static const u8 keyrepeat[] = { 0x26, };
-	static const u8 flatbattery[] = { 0x25, 0x87, 0xe0 };
-	unsigned long flags;
 
-	if (len != 5)
-		goto out;
+	/* pen */
+	x = y = 0;
+	if (data[11] == 0x40) {
+		int level = data[13] - 0x74;
 
-	if (!memcmp(data, keydown, sizeof(keydown))) {
-		int index;
+		if (level < 0)
+			level = 0;
 
-		spin_lock_irqsave(&udraw->lock, flags);
-		/*
-		 * If we already have a key down, take it up before marking
-		 * this one down
-		 */
-		if (udraw->current_key)
-			key_up(hid, udraw, udraw->current_key);
+		if (data[15] != 0x0F && data[17] != 0xFF)
+			x = data[15] * 256 + data[17];
+		if (data[16] != 0x0F && data[18] != 0xFF)
+			y = data[16] * 256 + data[18];
 
-		/* Handle dual packet commands */
-		if (udraw->prev_key_idx > 0)
-			index = udraw->prev_key_idx;
-		else
-			index = get_key(data[4]);
-
-		if (index >= 0) {
-			udraw->current_key = udraw->keymap[index];
-
-			key_down(hid, udraw, udraw->current_key);
-			/*
-			 * Remote doesn't do key up, either pull them up, in
-			 * the test above, or here set a timer which pulls
-			 * them up after 1/8 s
-			 */
-			udraw->prev_key_idx = 0;
-		} else
-			/* Remember key for next packet */
-			udraw->prev_key_idx = -index;
-		spin_unlock_irqrestore(&udraw->lock, flags);
-		goto out;
+		input_report_key(udraw->pen_input_dev, BTN_TOOL_PEN, 1);
+		input_report_abs(udraw->pen_input_dev, ABS_PRESSURE, level);
+		input_report_abs(udraw->pen_input_dev, ABS_X, x);
+		input_report_abs(udraw->pen_input_dev, ABS_Y, y);
+	} else {
+		input_report_abs(udraw->pen_input_dev, ABS_PRESSURE, 0);
+		input_report_key(udraw->pen_input_dev, BTN_TOOL_PEN, 0);
 	}
+	input_sync(udraw->touch_input_dev);
 
-	udraw->prev_key_idx = 0;
+	/* accel */
+	x = (data[19] + data[20] * 0xFF);
+	y = (data[21] + data[22] * 0xFF);
+	z = (data[23] + data[24] * 0xFF);
+	input_report_abs(udraw->accel_input_dev, ABS_RX, x);
+	input_report_abs(udraw->accel_input_dev, ABS_RY, y);
+	input_report_abs(udraw->accel_input_dev, ABS_RZ, z);
+	input_sync(udraw->accel_input_dev);
 
-	if (!memcmp(data, keyrepeat, sizeof(keyrepeat))) {
-		key_down(hid, udraw, udraw->current_key);
-		/*
-		 * Remote doesn't do key up, either pull them up, in the test
-		 * above, or here set a timer which pulls them up after 1/8 s
-		 */
-		mod_timer(&udraw->key_up_timer, jiffies + HZ / 8);
-		goto out;
-	}
-
-	if (!memcmp(data, flatbattery, sizeof(flatbattery))) {
-		battery_flat(udraw);
-		/* Fall through */
-	}
-#endif
-out:
 	/* let hidraw and hiddev handle the report */
 	return 0;
 }
@@ -267,7 +192,8 @@ static void udraw_close(struct input_dev *dev)
 	hid_hw_close(udraw->hdev);
 }
 
-static struct input_dev *allocate_and_setup(struct hid_device *hdev)
+static struct input_dev *allocate_and_setup(struct hid_device *hdev,
+		const char *suffix)
 {
 	struct input_dev *input_dev;
 
@@ -275,7 +201,8 @@ static struct input_dev *allocate_and_setup(struct hid_device *hdev)
 	if (!input_dev)
 		return NULL;
 
-	input_dev->name = hdev->name;
+	snprintf((char *) input_dev->name, sizeof(input_dev->name),
+			"%s (%s)", hdev->name, suffix);
 	input_dev->phys = hdev->phys;
 	input_dev->dev.parent = &hdev->dev;
 	input_dev->open = udraw_open;
@@ -295,7 +222,7 @@ static struct input_dev *udraw_setup_touch(struct udraw *udraw,
 {
 	struct input_dev *input_dev;
 
-	input_dev = allocate_and_setup(hdev);
+	input_dev = allocate_and_setup(hdev, "touchpad");
 	if (!input_dev)
 		return NULL;
 
@@ -312,6 +239,54 @@ static struct input_dev *udraw_setup_touch(struct udraw *udraw,
 
 	set_bit(INPUT_PROP_POINTER, input_dev->propbit);
 	set_bit(INPUT_PROP_BUTTONPAD, input_dev->propbit);
+
+	return input_dev;
+}
+
+static struct input_dev *udraw_setup_pen(struct udraw *udraw,
+		struct hid_device *hdev)
+{
+	struct input_dev *input_dev;
+
+	input_dev = allocate_and_setup(hdev, "pen");
+	if (!input_dev)
+		return NULL;
+
+	input_dev->evbit[0] = BIT(EV_ABS) | BIT(EV_KEY);
+
+	set_bit(ABS_X, input_dev->absbit);
+	input_set_abs_params(input_dev, ABS_X, 0, 1920, 1, 0);
+	set_bit(ABS_Y, input_dev->absbit);
+	input_set_abs_params(input_dev, ABS_Y, 0, 1080, 1, 0);
+	set_bit(ABS_PRESSURE, input_dev->absbit);
+	input_set_abs_params(input_dev, ABS_PRESSURE, 0, 0xFF - 0x74 - 0x01, 0, 0);
+
+	set_bit(BTN_TOOL_PEN, input_dev->keybit);
+
+	set_bit(INPUT_PROP_POINTER, input_dev->propbit);
+
+	return input_dev;
+}
+
+static struct input_dev *udraw_setup_accel(struct udraw *udraw,
+		struct hid_device *hdev)
+{
+	struct input_dev *input_dev;
+
+	input_dev = allocate_and_setup(hdev, "accelerometer");
+	if (!input_dev)
+		return NULL;
+
+	input_dev->evbit[0] = BIT(EV_ABS);
+
+	set_bit(ABS_RX, input_dev->absbit);
+	input_set_abs_params(input_dev, ABS_RX, 0, 1920, 1, 0);
+	set_bit(ABS_RY, input_dev->absbit);
+	input_set_abs_params(input_dev, ABS_RY, 0, 1080, 1, 0);
+	set_bit(ABS_RZ, input_dev->absbit);
+	input_set_abs_params(input_dev, ABS_RZ, 0, 1080, 1, 0);
+
+	set_bit(INPUT_PROP_ACCELEROMETER, input_dev->propbit);
 
 	return input_dev;
 }
@@ -336,29 +311,48 @@ static int udraw_input_configured(struct hid_device *hdev,
 {
 	struct input_dev *input_dev = hidinput->input;
 	struct udraw *udraw = hid_get_drvdata(hdev);
-	int error = 0;
+	int error;
 
 	/* joypad, uses the hid device */
 	udraw->joy_input_dev = input_dev;
 	udraw_setup_joypad(udraw, input_dev);
 
 	/* touchpad */
+	error = -1;
 	udraw->touch_input_dev = udraw_setup_touch(udraw, hdev);
 	if (!udraw->touch_input_dev)
-		return -1;
+		goto fail_register_touch_input;
 	error = input_register_device(udraw->touch_input_dev);
 	if (error)
 		goto fail_register_touch_input;
 	udraw->touch_input_dev_registered = true;
 
 	/* pen */
+	error = -1;
+	udraw->pen_input_dev = udraw_setup_pen(udraw, hdev);
+	if (!udraw->pen_input_dev)
+		goto fail_register_pen_input;
+	error = input_register_device(udraw->pen_input_dev);
+	if (error)
+		goto fail_register_pen_input;
+	udraw->pen_input_dev_registered = true;
 
 	/* accelerometer */
+	error = -1;
+	udraw->accel_input_dev = udraw_setup_accel(udraw, hdev);
+	if (!udraw->accel_input_dev)
+		goto fail_register_accel_input;
+	error = input_register_device(udraw->accel_input_dev);
+	if (error)
+		goto fail_register_accel_input;
+	udraw->accel_input_dev_registered = true;
 
-	//FIXME
-	// udraw_setup_pen
-	// udraw_setup_accel
+	return 0;
 
+fail_register_accel_input:
+	input_unregister_device(udraw->pen_input_dev);
+fail_register_pen_input:
+	input_unregister_device(udraw->touch_input_dev);
 fail_register_touch_input:
 	return error;
 }
