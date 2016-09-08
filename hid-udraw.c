@@ -175,6 +175,8 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 			y = data[16] * 256 + data[18];
 
 		input_report_key(udraw->touch_input_dev, BTN_TOUCH, 1);
+		input_report_key(udraw->touch_input_dev, BTN_TOOL_FINGER,
+				(data[11] == 0x80));
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_DOUBLETAP,
 				(data[11] != 0x80));
 
@@ -182,6 +184,7 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 		input_report_abs(udraw->touch_input_dev, ABS_Y, y);
 	} else {
 		input_report_key(udraw->touch_input_dev, BTN_TOUCH, 0);
+		input_report_key(udraw->touch_input_dev, BTN_TOOL_FINGER, 0);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_DOUBLETAP, 0);
 	}
 	input_sync(udraw->touch_input_dev);
@@ -303,8 +306,9 @@ static struct input_dev *udraw_setup_touch(struct udraw *udraw,
 	set_bit(ABS_Y, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_Y, 0, 1080, 1, 0);
 
-	set_bit(BTN_TOOL_DOUBLETAP, input_dev->keybit);
 	set_bit(BTN_TOUCH, input_dev->keybit);
+	set_bit(BTN_TOOL_FINGER, input_dev->keybit);
+	set_bit(BTN_TOOL_DOUBLETAP, input_dev->keybit);
 
 	set_bit(INPUT_PROP_POINTER, input_dev->propbit);
 	set_bit(INPUT_PROP_BUTTONPAD, input_dev->propbit);
