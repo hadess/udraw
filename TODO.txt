@@ -1,6 +1,4 @@
 - "kernel bug: Touch jump detected and discarded." warnings
-- mutter-WARNING **: Device 'THQ Inc THQ uDraw Game
-  Tablet for PS3' does not support click method 3
 - (II) THQ Inc THQ uDraw Game Tablet for PS3: no resolution or size
 hints, assuming a size of 69x50mm
 - (EE) libinput bug: THQ Inc THQ uDraw Game Tablet for PS3:

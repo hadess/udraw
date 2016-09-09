@@ -241,7 +241,6 @@ static struct input_dev *udraw_setup_touch(struct udraw *udraw,
 	set_bit(BTN_TOOL_DOUBLETAP, input_dev->keybit);
 
 	set_bit(INPUT_PROP_POINTER, input_dev->propbit);
-	set_bit(INPUT_PROP_BUTTONPAD, input_dev->propbit);
 
 	return input_dev;
 }
