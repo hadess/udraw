@@ -239,7 +239,7 @@ static bool udraw_setup_touch(struct udraw *udraw,
 	input_abs_set_res(input_dev, ABS_X, RES_X / WIDTH);
 	set_bit(ABS_Y, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_Y, 0, RES_Y, 1, 0);
-	input_abs_set_res(input_dev, ABS_X, RES_Y / HEIGHT);
+	input_abs_set_res(input_dev, ABS_Y, RES_Y / HEIGHT);
 
 	set_bit(BTN_TOUCH, input_dev->keybit);
 	set_bit(BTN_TOOL_FINGER, input_dev->keybit);
@@ -268,7 +268,7 @@ static bool udraw_setup_pen(struct udraw *udraw,
 	input_abs_set_res(input_dev, ABS_X, RES_X / WIDTH);
 	set_bit(ABS_Y, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_Y, 0, RES_Y, 1, 0);
-	input_abs_set_res(input_dev, ABS_X, RES_Y / HEIGHT);
+	input_abs_set_res(input_dev, ABS_Y, RES_Y / HEIGHT);
 	set_bit(ABS_PRESSURE, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_PRESSURE, 0, 0xFF - 0x74 - 0x01, 0, 0);
 
