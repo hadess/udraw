@@ -160,7 +160,7 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 		if (data[16] != 0x0F && data[18] != 0xFF)
 			y = data[16] * 256 + data[18];
 
-		input_report_key(udraw->pen_input_dev, BTN_TOUCH, 1);
+		input_report_key(udraw->pen_input_dev, BTN_TOUCH, (level != 0));
 		input_report_key(udraw->pen_input_dev, BTN_TOOL_PEN, 1);
 		input_report_abs(udraw->pen_input_dev, ABS_PRESSURE, level);
 		input_report_abs(udraw->pen_input_dev, ABS_X, x);
