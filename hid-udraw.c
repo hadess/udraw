@@ -334,9 +334,6 @@ static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 
 	udraw->hdev = hdev;
 
-	/* force input as some remotes bypass the input registration */
-	hdev->quirks |= HID_QUIRK_HIDINPUT_FORCE;
-
 	hid_set_drvdata(hdev, udraw);
 
 	ret = hid_parse(hdev);
