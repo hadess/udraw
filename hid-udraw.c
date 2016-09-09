@@ -323,13 +323,6 @@ static bool udraw_setup_joypad(struct udraw *udraw,
 	return true;
 }
 
-static int udraw_input_mapping(struct hid_device *hdev,
-		struct hid_input *hi, struct hid_field *field,
-		struct hid_usage *usage, unsigned long **bit, int *max)
-{
-	return -1;
-}
-
 static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 {
 	struct udraw *udraw;
@@ -399,6 +392,5 @@ static struct hid_driver udraw_driver = {
 	.raw_event = udraw_raw_event,
 	.probe = udraw_probe,
 	.remove = udraw_remove,
-	.input_mapping = udraw_input_mapping,
 };
 module_hid_driver(udraw_driver);
