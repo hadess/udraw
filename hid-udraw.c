@@ -314,7 +314,7 @@ static bool udraw_setup_joypad(struct udraw *udraw,
 	struct input_dev *input_dev;
 	int i;
 
-	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (accelerometer)");
+	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (joypad)");
 	if (!input_dev)
 		return false;
 
