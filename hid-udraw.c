@@ -378,8 +378,8 @@ static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 
 	ret = input_register_device(udraw->joy_input_dev) ||
 		input_register_device(udraw->touch_input_dev) ||
-			input_register_device(udraw->pen_input_dev) ||
-			input_register_device(udraw->accel_input_dev);
+		input_register_device(udraw->pen_input_dev) ||
+		input_register_device(udraw->accel_input_dev);
 	if (ret) {
 		hid_err(hdev, "failed to register interfaces\n");
 		return ret;
