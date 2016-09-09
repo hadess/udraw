@@ -371,11 +371,6 @@ static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	return 0;
 }
 
-static void udraw_remove(struct hid_device *hdev)
-{
-	hid_hw_stop(hdev);
-}
-
 //FIXME
 #define USB_VENDOR_ID_THQ           0x20d6
 #define USB_DEVICE_ID_THQ_PS3_UDRAW 0xcb17
@@ -391,6 +386,5 @@ static struct hid_driver udraw_driver = {
 	.id_table = udraw_devices,
 	.raw_event = udraw_raw_event,
 	.probe = udraw_probe,
-	.remove = udraw_remove,
 };
 module_hid_driver(udraw_driver);
