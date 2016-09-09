@@ -53,11 +53,8 @@ static const unsigned short udraw_joy_key_table[] = {
 struct udraw {
 	struct input_dev *joy_input_dev;
 	struct input_dev *touch_input_dev;
-	bool touch_input_dev_registered;
 	struct input_dev *pen_input_dev;
-	bool pen_input_dev_registered;
 	struct input_dev *accel_input_dev;
-	bool accel_input_dev_registered;
 	struct hid_device *hdev;
 };
 
@@ -310,57 +307,6 @@ static void udraw_setup_joypad(struct udraw *udraw, struct input_dev *input_dev)
 		set_bit(udraw_joy_key_table[i], input_dev->keybit);
 }
 
-static int udraw_input_configured(struct hid_device *hdev,
-		struct hid_input *hidinput)
-{
-	struct input_dev *input_dev = hidinput->input;
-	struct udraw *udraw = hid_get_drvdata(hdev);
-	int error;
-
-	/* joypad, uses the hid device */
-	udraw->joy_input_dev = input_dev;
-	udraw_setup_joypad(udraw, input_dev);
-
-	/* touchpad */
-	error = -1;
-	udraw->touch_input_dev = udraw_setup_touch(udraw, hdev);
-	if (!udraw->touch_input_dev)
-		goto fail_register_touch_input;
-	error = input_register_device(udraw->touch_input_dev);
-	if (error)
-		goto fail_register_touch_input;
-	udraw->touch_input_dev_registered = true;
-
-	/* pen */
-	error = -1;
-	udraw->pen_input_dev = udraw_setup_pen(udraw, hdev);
-	if (!udraw->pen_input_dev)
-		goto fail_register_pen_input;
-	error = input_register_device(udraw->pen_input_dev);
-	if (error)
-		goto fail_register_pen_input;
-	udraw->pen_input_dev_registered = true;
-
-	/* accelerometer */
-	error = -1;
-	udraw->accel_input_dev = udraw_setup_accel(udraw, hdev);
-	if (!udraw->accel_input_dev)
-		goto fail_register_accel_input;
-	error = input_register_device(udraw->accel_input_dev);
-	if (error)
-		goto fail_register_accel_input;
-	udraw->accel_input_dev_registered = true;
-
-	return 0;
-
-fail_register_accel_input:
-	input_unregister_device(udraw->pen_input_dev);
-fail_register_pen_input:
-	input_unregister_device(udraw->touch_input_dev);
-fail_register_touch_input:
-	return error;
-}
-
 static int udraw_input_mapping(struct hid_device *hdev,
 		struct hid_input *hi, struct hid_field *field,
 		struct hid_usage *usage, unsigned long **bit, int *max)
@@ -370,14 +316,12 @@ static int udraw_input_mapping(struct hid_device *hdev,
 
 static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 {
-	int ret;
 	struct udraw *udraw;
+	int ret, error;
 
-	udraw = kzalloc(sizeof(struct udraw), GFP_KERNEL);
-	if (!udraw) {
-		ret = -ENOMEM;
-		goto allocfail;
-	}
+	udraw = devm_kzalloc(&hdev->dev, sizeof(struct udraw), GFP_KERNEL);
+	if (!udraw)
+		return -ENOMEM;
 
 	udraw->hdev = hdev;
 
@@ -389,13 +333,41 @@ static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	ret = hid_parse(hdev);
 	if (ret) {
 		hid_err(hdev, "parse failed\n");
-		goto fail;
+		return ret;
 	}
+
+	/* joypad, uses the hid device */
+	udraw->joy_input_dev = input_dev;
+	udraw_setup_joypad(udraw, input_dev);
+
+	/* touchpad */
+	udraw->touch_input_dev = udraw_setup_touch(udraw, hdev);
+	if (!udraw->touch_input_dev)
+		return -ENOMEM;
+	error = input_register_device(udraw->touch_input_dev);
+	if (error)
+		return error;
+
+	/* pen */
+	udraw->pen_input_dev = udraw_setup_pen(udraw, hdev);
+	if (!udraw->pen_input_dev)
+		return -ENOMEM;
+	error = input_register_device(udraw->pen_input_dev);
+	if (error)
+		return error;
+
+	/* accelerometer */
+	udraw->accel_input_dev = udraw_setup_accel(udraw, hdev);
+	if (!udraw->accel_input_dev)
+		return -ENOMEM;
+	error = input_register_device(udraw->accel_input_dev);
+	if (error)
+		return error;
 
 	ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT | HID_CONNECT_HIDDEV_FORCE);
 	if (ret) {
 		hid_err(hdev, "hw start failed\n");
-		goto fail;
+		return ret;
 	}
 
 	return 0;
@@ -409,7 +381,6 @@ static void udraw_remove(struct hid_device *hdev)
 {
 	struct udraw *udraw = hid_get_drvdata(hdev);
 	hid_hw_stop(hdev);
-	kfree(udraw);
 }
 
 //FIXME
@@ -426,7 +397,6 @@ static struct hid_driver udraw_driver = {
 	.name = "hid-udraw",
 	.id_table = udraw_devices,
 	.raw_event = udraw_raw_event,
-	.input_configured = udraw_input_configured,
 	.probe = udraw_probe,
 	.remove = udraw_remove,
 	.input_mapping = udraw_input_mapping,
