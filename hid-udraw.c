@@ -185,7 +185,7 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	/* pen */
 	x = y = 0;
 	if (touch == TOUCH_PEN) {
-		int level = data[13] - 0x74;
+		int level = data[13] - 0x71;
 
 		if (level < 0)
 			level = 0;
