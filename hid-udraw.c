@@ -55,6 +55,25 @@ enum {
 	TOUCH_FINGERS
 };
 
+/* Accelerometer min/max values
+ * in order, X, Y and Z */
+struct {
+	int min;
+	int max;
+} accel_limits[] = {
+	{ 0x1EA, 0x216 },
+	{ 0x1EA, 0x216 },
+	{ 0x1EC, 0x218 }
+};
+
+#define CLAMP_ACCEL(axis, offset)			\
+	axis = clamp(axis,				\
+			accel_limits[offset].min,	\
+			accel_limits[offset].max);	\
+	axis = (axis - accel_limits[offset].min) /	\
+			((accel_limits[offset].max -	\
+			  accel_limits[offset].min) * 0xFF);
+
 #define DEVICE_NAME "THQ uDraw Game Tablet for PS3"
 /* resolution in pixels */
 #define RES_X 1920
@@ -189,9 +208,12 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	input_sync(udraw->pen_input_dev);
 
 	/* accel */
-	x = (data[19] + data[20] * 0xFF);
-	y = (data[21] + data[22] * 0xFF);
-	z = (data[23] + data[24] * 0xFF);
+	x = (data[19] + (data[20] << 8));
+	CLAMP_ACCEL(x, 0);
+	y = (data[21] + (data[22] << 8));
+	CLAMP_ACCEL(y, 1);
+	z = (data[23] + (data[24] << 8));
+	CLAMP_ACCEL(z, 2);
 	input_report_abs(udraw->accel_input_dev, ABS_X, x);
 	input_report_abs(udraw->accel_input_dev, ABS_Y, y);
 	input_report_abs(udraw->accel_input_dev, ABS_Z, z);
@@ -309,13 +331,13 @@ static bool udraw_setup_accel(struct udraw *udraw,
 
 	input_dev->evbit[0] = BIT(EV_ABS);
 
-	//FIXME the default values are wrong
+	/* 1G accel is reported as ~256, so clamp to 2G */
 	set_bit(ABS_X, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_X, 0, 1920, 1, 0);
+	input_set_abs_params(input_dev, ABS_X, -512, 512, 0, 0);
 	set_bit(ABS_Y, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_Y, 0, 1080, 1, 0);
+	input_set_abs_params(input_dev, ABS_Y, -512, 512, 0, 0);
 	set_bit(ABS_Z, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_Z, 0, 1080, 1, 0);
+	input_set_abs_params(input_dev, ABS_Z, -512, 512, 0, 0);
 
 	set_bit(INPUT_PROP_ACCELEROMETER, input_dev->propbit);
 
