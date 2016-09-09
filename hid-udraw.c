@@ -49,6 +49,12 @@ static const unsigned short udraw_joy_key_table[] = {
 };
 
 #define DEVICE_NAME "THQ uDraw Game Tablet for PS3"
+/* resolution in pixels */
+#define RES_X 1920
+#define RES_Y 1080
+/* size in mm */
+#define WIDTH  160
+#define HEIGHT 90
 
 struct udraw {
 	struct input_dev *joy_input_dev;
@@ -229,9 +235,11 @@ static bool udraw_setup_touch(struct udraw *udraw,
 	input_dev->evbit[0] = BIT(EV_ABS) | BIT(EV_KEY);
 
 	set_bit(ABS_X, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_X, 0, 1920, 1, 0);
+	input_set_abs_params(input_dev, ABS_X, 0, RES_X, 1, 0);
+	input_abs_set_res(input_dev, ABS_X, RES_X / WIDTH);
 	set_bit(ABS_Y, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_Y, 0, 1080, 1, 0);
+	input_set_abs_params(input_dev, ABS_Y, 0, RES_Y, 1, 0);
+	input_abs_set_res(input_dev, ABS_X, RES_Y / HEIGHT);
 
 	set_bit(BTN_TOUCH, input_dev->keybit);
 	set_bit(BTN_TOOL_FINGER, input_dev->keybit);
@@ -256,9 +264,11 @@ static bool udraw_setup_pen(struct udraw *udraw,
 	input_dev->evbit[0] = BIT(EV_ABS) | BIT(EV_KEY);
 
 	set_bit(ABS_X, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_X, 0, 1920, 1, 0);
+	input_set_abs_params(input_dev, ABS_X, 0, RES_X, 1, 0);
+	input_abs_set_res(input_dev, ABS_X, RES_X / WIDTH);
 	set_bit(ABS_Y, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_Y, 0, 1080, 1, 0);
+	input_set_abs_params(input_dev, ABS_Y, 0, RES_Y, 1, 0);
+	input_abs_set_res(input_dev, ABS_X, RES_Y / HEIGHT);
 	set_bit(ABS_PRESSURE, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_PRESSURE, 0, 0xFF - 0x74 - 0x01, 0, 0);
 
