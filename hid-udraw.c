@@ -48,6 +48,13 @@ static const unsigned short udraw_joy_key_table[] = {
 	BTN_MODE
 };
 
+enum {
+	TOUCH_NONE,
+	TOUCH_PEN,
+	TOUCH_FINGER,
+	TOUCH_FINGERS
+};
+
 #define DEVICE_NAME "THQ uDraw Game Tablet for PS3"
 /* resolution in pixels */
 #define RES_X 1920
@@ -68,10 +75,20 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	 u8 *data, int len)
 {
 	struct udraw *udraw = hid_get_drvdata(hdev);
+	int touch;
 	int x, y, z;
 
 	if (len != 0x1B)
 		return 0;
+
+	if (data[11] == 0x00)
+		touch = TOUCH_NONE;
+	else if (data[11] == 0x40)
+		touch = TOUCH_PEN;
+	else if (data[11] == 0x80)
+		touch = TOUCH_FINGER;
+	else
+		touch = TOUCH_FINGERS;
 
 	/* joypad */
 	input_report_key(udraw->joy_input_dev, BTN_WEST, data[0] & 1);
@@ -125,8 +142,7 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	/* touchpad */
 	x = y = 0;
 	/* Finger(s) in use? */
-	if (data[11] == 0x80 || data[11] >= 191) {
-		bool single_touch = (data[11] == 0x80);
+	if (touch == TOUCH_FINGER || touch == TOUCH_FINGERS) {
 		if (data[15] != 0x0F && data[17] != 0xFF)
 			x = data[15] * 256 + data[17];
 		if (data[16] != 0x0F && data[18] != 0xFF)
@@ -134,9 +150,9 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 
 		input_report_key(udraw->touch_input_dev, BTN_TOUCH, 1);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_FINGER,
-				single_touch);
+				touch == TOUCH_FINGER);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_DOUBLETAP,
-				!single_touch);
+				touch == TOUCH_FINGERS);
 
 		input_report_abs(udraw->touch_input_dev, ABS_X, x);
 		input_report_abs(udraw->touch_input_dev, ABS_Y, y);
@@ -149,7 +165,7 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 
 	/* pen */
 	x = y = 0;
-	if (data[11] == 0x40) {
+	if (touch == TOUCH_PEN) {
 		int level = data[13] - 0x74;
 
 		if (level < 0)
