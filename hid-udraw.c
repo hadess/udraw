@@ -157,11 +157,13 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 		if (data[16] != 0x0F && data[18] != 0xFF)
 			y = data[16] * 256 + data[18];
 
+		input_report_key(udraw->pen_input_dev, BTN_TOUCH, 1);
 		input_report_key(udraw->pen_input_dev, BTN_TOOL_PEN, 1);
 		input_report_abs(udraw->pen_input_dev, ABS_PRESSURE, level);
 		input_report_abs(udraw->pen_input_dev, ABS_X, x);
 		input_report_abs(udraw->pen_input_dev, ABS_Y, y);
 	} else {
+		input_report_key(udraw->pen_input_dev, BTN_TOUCH, 0);
 		input_report_abs(udraw->pen_input_dev, ABS_PRESSURE, 0);
 		input_report_key(udraw->pen_input_dev, BTN_TOOL_PEN, 0);
 	}
@@ -262,6 +264,7 @@ static struct input_dev *udraw_setup_pen(struct udraw *udraw,
 	set_bit(ABS_PRESSURE, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_PRESSURE, 0, 0xFF - 0x74 - 0x01, 0, 0);
 
+	set_bit(BTN_TOUCH, input_dev->keybit);
 	set_bit(BTN_TOOL_PEN, input_dev->keybit);
 
 	set_bit(INPUT_PROP_POINTER, input_dev->propbit);
