@@ -217,14 +217,14 @@ static struct input_dev *allocate_and_setup(struct hid_device *hdev,
 	return input_dev;
 }
 
-static struct input_dev *udraw_setup_touch(struct udraw *udraw,
+static bool udraw_setup_touch(struct udraw *udraw,
 		struct hid_device *hdev)
 {
 	struct input_dev *input_dev;
 
 	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (touchpad)");
 	if (!input_dev)
-		return NULL;
+		return false;
 
 	input_dev->evbit[0] = BIT(EV_ABS) | BIT(EV_KEY);
 
@@ -239,17 +239,19 @@ static struct input_dev *udraw_setup_touch(struct udraw *udraw,
 
 	set_bit(INPUT_PROP_POINTER, input_dev->propbit);
 
-	return input_dev;
+	udraw->touch_input_dev = input_dev;
+
+	return true;
 }
 
-static struct input_dev *udraw_setup_pen(struct udraw *udraw,
+static bool udraw_setup_pen(struct udraw *udraw,
 		struct hid_device *hdev)
 {
 	struct input_dev *input_dev;
 
 	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (pen)");
 	if (!input_dev)
-		return NULL;
+		return false;
 
 	input_dev->evbit[0] = BIT(EV_ABS) | BIT(EV_KEY);
 
@@ -265,17 +267,19 @@ static struct input_dev *udraw_setup_pen(struct udraw *udraw,
 
 	set_bit(INPUT_PROP_POINTER, input_dev->propbit);
 
-	return input_dev;
+	udraw->pen_input_dev = input_dev;
+
+	return true;
 }
 
-static struct input_dev *udraw_setup_accel(struct udraw *udraw,
+static bool udraw_setup_accel(struct udraw *udraw,
 		struct hid_device *hdev)
 {
 	struct input_dev *input_dev;
 
 	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (accelerometer)");
 	if (!input_dev)
-		return NULL;
+		return false;
 
 	input_dev->evbit[0] = BIT(EV_ABS);
 
@@ -289,12 +293,20 @@ static struct input_dev *udraw_setup_accel(struct udraw *udraw,
 
 	set_bit(INPUT_PROP_ACCELEROMETER, input_dev->propbit);
 
-	return input_dev;
+	udraw->accel_input_dev = input_dev;
+
+	return true;
 }
 
-static void udraw_setup_joypad(struct udraw *udraw, struct input_dev *input_dev)
+static bool udraw_setup_joypad(struct udraw *udraw,
+		struct hid_device *hdev)
 {
+	struct input_dev *input_dev;
 	int i;
+
+	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (accelerometer)");
+	if (!input_dev)
+		return false;
 
 	input_dev->evbit[0] = BIT(EV_KEY) | BIT(EV_ABS);
 
@@ -305,6 +317,10 @@ static void udraw_setup_joypad(struct udraw *udraw, struct input_dev *input_dev)
 
 	for (i = 0; i < ARRAY_SIZE(udraw_joy_key_table); i++)
 		set_bit(udraw_joy_key_table[i], input_dev->keybit);
+
+	udraw->joy_input_dev = input_dev;
+
+	return true;
 }
 
 static int udraw_input_mapping(struct hid_device *hdev,
@@ -317,7 +333,7 @@ static int udraw_input_mapping(struct hid_device *hdev,
 static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 {
 	struct udraw *udraw;
-	int ret, error;
+	int ret;
 
 	udraw = devm_kzalloc(&hdev->dev, sizeof(struct udraw), GFP_KERNEL);
 	if (!udraw)
@@ -336,33 +352,22 @@ static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 		return ret;
 	}
 
-	/* joypad, uses the hid device */
-	udraw->joy_input_dev = input_dev;
-	udraw_setup_joypad(udraw, input_dev);
-
-	/* touchpad */
-	udraw->touch_input_dev = udraw_setup_touch(udraw, hdev);
-	if (!udraw->touch_input_dev)
+	if (!udraw_setup_joypad(udraw, hdev) ||
+	    !udraw_setup_touch(udraw, hdev) ||
+	    !udraw_setup_pen(udraw, hdev) ||
+	    !udraw_setup_accel(udraw, hdev)) {
+		hid_err(hdev, "could not allocate interfaces\n");
 		return -ENOMEM;
-	error = input_register_device(udraw->touch_input_dev);
-	if (error)
-		return error;
+	}
 
-	/* pen */
-	udraw->pen_input_dev = udraw_setup_pen(udraw, hdev);
-	if (!udraw->pen_input_dev)
-		return -ENOMEM;
-	error = input_register_device(udraw->pen_input_dev);
-	if (error)
-		return error;
-
-	/* accelerometer */
-	udraw->accel_input_dev = udraw_setup_accel(udraw, hdev);
-	if (!udraw->accel_input_dev)
-		return -ENOMEM;
-	error = input_register_device(udraw->accel_input_dev);
-	if (error)
-		return error;
+	ret = input_register_device(udraw->joy_input_dev) ||
+		input_register_device(udraw->touch_input_dev) ||
+			input_register_device(udraw->pen_input_dev) ||
+			input_register_device(udraw->accel_input_dev);
+	if (ret) {
+		hid_err(hdev, "failed to register interfaces\n");
+		return ret;
+	}
 
 	ret = hid_hw_start(hdev, HID_CONNECT_DEFAULT | HID_CONNECT_HIDDEV_FORCE);
 	if (ret) {
@@ -371,15 +376,10 @@ static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 	}
 
 	return 0;
-fail:
-	kfree(udraw);
-allocfail:
-	return ret;
 }
 
 static void udraw_remove(struct hid_device *hdev)
 {
-	struct udraw *udraw = hid_get_drvdata(hdev);
 	hid_hw_stop(hdev);
 }
 
