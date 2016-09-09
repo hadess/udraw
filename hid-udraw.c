@@ -201,7 +201,7 @@ static struct input_dev *allocate_and_setup(struct hid_device *hdev,
 {
 	struct input_dev *input_dev;
 
-	input_dev = input_allocate_device();
+	input_dev = devm_input_allocate_device(&hdev->dev);
 	if (!input_dev)
 		return NULL;
 
@@ -410,12 +410,6 @@ static void udraw_remove(struct hid_device *hdev)
 {
 	struct udraw *udraw = hid_get_drvdata(hdev);
 	hid_hw_stop(hdev);
-	/* joy_input_device is always registered and allocated */
-	if (udraw->touch_input_dev) {
-		if (udraw->touch_input_dev_registered)
-			input_unregister_device(udraw->touch_input_dev);
-		input_free_device(udraw->touch_input_dev);
-	}
 	kfree(udraw);
 }
 
