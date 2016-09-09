@@ -173,9 +173,9 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	x = (data[19] + data[20] * 0xFF);
 	y = (data[21] + data[22] * 0xFF);
 	z = (data[23] + data[24] * 0xFF);
-	input_report_abs(udraw->accel_input_dev, ABS_RX, x);
-	input_report_abs(udraw->accel_input_dev, ABS_RY, y);
-	input_report_abs(udraw->accel_input_dev, ABS_RZ, z);
+	input_report_abs(udraw->accel_input_dev, ABS_X, x);
+	input_report_abs(udraw->accel_input_dev, ABS_Y, y);
+	input_report_abs(udraw->accel_input_dev, ABS_Z, z);
 	input_sync(udraw->accel_input_dev);
 
 	/* let hidraw and hiddev handle the report */
@@ -284,12 +284,12 @@ static struct input_dev *udraw_setup_accel(struct udraw *udraw,
 	input_dev->evbit[0] = BIT(EV_ABS);
 
 	//FIXME the default values are wrong
-	set_bit(ABS_RX, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_RX, 0, 1920, 1, 0);
-	set_bit(ABS_RY, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_RY, 0, 1080, 1, 0);
-	set_bit(ABS_RZ, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_RZ, 0, 1080, 1, 0);
+	set_bit(ABS_X, input_dev->absbit);
+	input_set_abs_params(input_dev, ABS_X, 0, 1920, 1, 0);
+	set_bit(ABS_Y, input_dev->absbit);
+	input_set_abs_params(input_dev, ABS_Y, 0, 1080, 1, 0);
+	set_bit(ABS_Z, input_dev->absbit);
+	input_set_abs_params(input_dev, ABS_Z, 0, 1080, 1, 0);
 
 	set_bit(INPUT_PROP_ACCELEROMETER, input_dev->propbit);
 
