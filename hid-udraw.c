@@ -56,7 +56,8 @@ enum {
 };
 
 /* Accelerometer min/max values
- * in order, X, Y and Z */
+ * in order, X, Y and Z
+ */
 struct {
 	int min;
 	int max;
@@ -82,7 +83,7 @@ struct {
 #define WIDTH  160
 #define HEIGHT 90
 #define PRESSURE_OFFSET 0x71
-#define MAX_PRESSURE 0xFF - PRESSURE_OFFSET
+#define MAX_PRESSURE (0xFF - PRESSURE_OFFSET)
 
 struct udraw {
 	struct input_dev *joy_input_dev;
@@ -152,7 +153,7 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 		x = -127;
 		break;
 	default:
-		;;
+		break;
 	}
 
 	input_report_abs(udraw->joy_input_dev, ABS_X, x);
