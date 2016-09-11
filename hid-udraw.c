@@ -90,39 +90,7 @@ struct udraw {
 	struct input_dev *pen_input_dev;
 	struct input_dev *accel_input_dev;
 	struct hid_device *hdev;
-
-	int last_x, last_y;
 };
-
-#define POW2(x) (x * x)
-static bool touchpad_jumped(struct udraw *udraw, int x, int y)
-{
-	bool ret;
-	int dx, dy, distance;
-
-	ret = false;
-
-	if (udraw->last_x == -1)
-		goto out;
-
-	dx = abs(udraw->last_x - x);
-	dy = abs(udraw->last_y - y);
-	distance = int_sqrt(POW2(dx) + POW2(dy));
-
-	/* Max 20mm jump */
-	if (distance > (RES_X / WIDTH) * 20) {
-		hid_dbg(udraw->hdev, "Touchpad jumped by %d\n", distance);
-		hid_dbg(udraw->hdev, "from %d,%d to %d,%d\n",
-				udraw->last_x, udraw->last_y,
-				x, y);
-		return true;
-	}
-
-out:
-	udraw->last_x = x;
-	udraw->last_y = y;
-	return false;
-}
 
 static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	 u8 *data, int len)
@@ -209,16 +177,12 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_DOUBLETAP,
 				touch == TOUCH_FINGERS);
 
-		if (!touchpad_jumped(udraw, x, y)) {
-			input_report_abs(udraw->touch_input_dev, ABS_X, x);
-			input_report_abs(udraw->touch_input_dev, ABS_Y, y);
-		}
+		input_report_abs(udraw->touch_input_dev, ABS_X, x);
+		input_report_abs(udraw->touch_input_dev, ABS_Y, y);
 	} else {
 		input_report_key(udraw->touch_input_dev, BTN_TOUCH, 0);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_FINGER, 0);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_DOUBLETAP, 0);
-
-		udraw->last_x = udraw->last_y = -1;
 	}
 	input_sync(udraw->touch_input_dev);
 
@@ -416,7 +380,6 @@ static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 		return -ENOMEM;
 
 	udraw->hdev = hdev;
-	udraw->last_x = udraw->last_y = -1;
 
 	hid_set_drvdata(hdev, udraw);
 
