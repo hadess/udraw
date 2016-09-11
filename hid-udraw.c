@@ -16,7 +16,7 @@
 #include <linux/device.h>
 #include <linux/hid.h>
 #include <linux/module.h>
-//#include "hid-ids.h"
+#include "hid-ids.h"
 
 MODULE_AUTHOR("Bastien Nocera <hadess@hadess.net>");
 MODULE_DESCRIPTION("PS3 uDraw tablet driver");
@@ -414,10 +414,6 @@ static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 
 	return 0;
 }
-
-//FIXME
-#define USB_VENDOR_ID_THQ           0x20d6
-#define USB_DEVICE_ID_THQ_PS3_UDRAW 0xcb17
 
 static const struct hid_device_id udraw_devices[] = {
 	{ HID_USB_DEVICE(USB_VENDOR_ID_THQ, USB_DEVICE_ID_THQ_PS3_UDRAW) },
