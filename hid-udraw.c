@@ -81,6 +81,8 @@ struct {
 /* size in mm */
 #define WIDTH  160
 #define HEIGHT 90
+#define PRESSURE_OFFSET 0x71
+#define MAX_PRESSURE 0xFF - PRESSURE_OFFSET
 
 struct udraw {
 	struct input_dev *joy_input_dev;
@@ -158,15 +160,17 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 
 	input_sync(udraw->joy_input_dev);
 
-	/* touchpad */
+	/* For pen and touchpad */
 	x = y = 0;
-	/* Finger(s) in use? */
-	if (touch == TOUCH_FINGER || touch == TOUCH_FINGERS) {
+	if (touch != TOUCH_NONE) {
 		if (data[15] != 0x0F && data[17] != 0xFF)
 			x = data[15] * 256 + data[17];
 		if (data[16] != 0x0F && data[18] != 0xFF)
 			y = data[16] * 256 + data[18];
+	}
 
+	/* touchpad */
+	if (touch == TOUCH_FINGER || touch == TOUCH_FINGERS) {
 		input_report_key(udraw->touch_input_dev, BTN_TOUCH, 1);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_FINGER,
 				touch == TOUCH_FINGER);
@@ -183,17 +187,11 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	input_sync(udraw->touch_input_dev);
 
 	/* pen */
-	x = y = 0;
 	if (touch == TOUCH_PEN) {
-		int level = data[13] - 0x71;
+		int level;
 
-		if (level < 0)
-			level = 0;
-
-		if (data[15] != 0x0F && data[17] != 0xFF)
-			x = data[15] * 256 + data[17];
-		if (data[16] != 0x0F && data[18] != 0xFF)
-			y = data[16] * 256 + data[18];
+		level = clamp(data[13] - PRESSURE_OFFSET,
+				0, MAX_PRESSURE);
 
 		input_report_key(udraw->pen_input_dev, BTN_TOUCH, (level != 0));
 		input_report_key(udraw->pen_input_dev, BTN_TOOL_PEN, 1);
@@ -308,7 +306,8 @@ static bool udraw_setup_pen(struct udraw *udraw,
 	input_set_abs_params(input_dev, ABS_Y, 0, RES_Y, 1, 0);
 	input_abs_set_res(input_dev, ABS_Y, RES_Y / HEIGHT);
 	set_bit(ABS_PRESSURE, input_dev->absbit);
-	input_set_abs_params(input_dev, ABS_PRESSURE, 0, 0xFF - 0x74 - 0x01, 0, 0);
+	input_set_abs_params(input_dev, ABS_PRESSURE,
+			0, MAX_PRESSURE, 0, 0);
 
 	set_bit(BTN_TOUCH, input_dev->keybit);
 	set_bit(BTN_TOOL_PEN, input_dev->keybit);
