@@ -1,4 +1,3 @@
-- "kernel bug: Touch jump detected and discarded." warnings
 - (EE) libinput bug: THQ Inc THQ uDraw Game Tablet for PS3:
 Internal or external? Please file a bug.
   (File bug in systemd's hwdb/70-touchpad.hwdb)
