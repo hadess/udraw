@@ -163,9 +163,9 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	/* For pen and touchpad */
 	x = y = 0;
 	if (touch != TOUCH_NONE) {
-		if (data[15] != 0x0F && data[17] != 0xFF)
+		if (data[15] != 0x0F)
 			x = data[15] * 256 + data[17];
-		if (data[16] != 0x0F && data[18] != 0xFF)
+		if (data[16] != 0x0F)
 			y = data[16] * 256 + data[18];
 	}
 
