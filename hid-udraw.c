@@ -124,31 +124,31 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	x = y = 0;
 	switch (data[2]) {
 	case 0x0:
-		y = 127;
+		y = -127;
 		break;
 	case 0x1:
-		y = 127;
+		y = -127;
 		x = 127;
 		break;
 	case 0x2:
 		x = 127;
 		break;
 	case 0x3:
-		y = -127;
+		y = 127;
 		x = 127;
 		break;
 	case 0x4:
-		y = -127;
+		y = 127;
 		break;
 	case 0x5:
-		y = -127;
+		y = 127;
 		x = -127;
 		break;
 	case 0x6:
 		x = -127;
 		break;
 	case 0x7:
-		y = 127;
+		y = -127;
 		x = -127;
 		break;
 	default:
