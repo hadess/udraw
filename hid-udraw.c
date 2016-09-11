@@ -67,14 +67,6 @@ struct {
 	{ 0x1EC, 0x218 }
 };
 
-#define CLAMP_ACCEL(axis, offset)			\
-	axis = clamp(axis,				\
-			accel_limits[offset].min,	\
-			accel_limits[offset].max);	\
-	axis = (axis - accel_limits[offset].min) /	\
-			((accel_limits[offset].max -	\
-			  accel_limits[offset].min) * 0xFF);
-
 #define DEVICE_NAME "THQ uDraw Game Tablet for PS3"
 /* resolution in pixels */
 #define RES_X 1920
@@ -92,6 +84,17 @@ struct udraw {
 	struct input_dev *accel_input_dev;
 	struct hid_device *hdev;
 };
+
+static int clamp_accel(int axis, int offset)
+{
+	axis = clamp(axis,
+			accel_limits[offset].min,
+			accel_limits[offset].max);
+	axis = (axis - accel_limits[offset].min) /
+			((accel_limits[offset].max -
+			  accel_limits[offset].min) * 0xFF);
+	return axis;
+}
 
 static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	 u8 *data, int len)
@@ -208,11 +211,11 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 
 	/* accel */
 	x = (data[19] + (data[20] << 8));
-	CLAMP_ACCEL(x, 0);
+	x = clamp_accel(x, 0);
 	y = (data[21] + (data[22] << 8));
-	CLAMP_ACCEL(y, 1);
+	y = clamp_accel(y, 1);
 	z = (data[23] + (data[24] << 8));
-	CLAMP_ACCEL(z, 2);
+	z = clamp_accel(z, 2);
 	input_report_abs(udraw->accel_input_dev, ABS_X, x);
 	input_report_abs(udraw->accel_input_dev, ABS_Y, y);
 	input_report_abs(udraw->accel_input_dev, ABS_Z, z);
