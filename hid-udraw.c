@@ -274,7 +274,7 @@ static bool udraw_setup_touch(struct udraw *udraw,
 {
 	struct input_dev *input_dev;
 
-	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (touchpad)");
+	input_dev = allocate_and_setup(hdev, DEVICE_NAME " Touchpad");
 	if (!input_dev)
 		return false;
 
@@ -303,7 +303,7 @@ static bool udraw_setup_pen(struct udraw *udraw,
 {
 	struct input_dev *input_dev;
 
-	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (pen)");
+	input_dev = allocate_and_setup(hdev, DEVICE_NAME " Pen");
 	if (!input_dev)
 		return false;
 
@@ -334,7 +334,7 @@ static bool udraw_setup_accel(struct udraw *udraw,
 {
 	struct input_dev *input_dev;
 
-	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (accelerometer)");
+	input_dev = allocate_and_setup(hdev, DEVICE_NAME " Accelerometer");
 	if (!input_dev)
 		return false;
 
@@ -361,7 +361,7 @@ static bool udraw_setup_joypad(struct udraw *udraw,
 	struct input_dev *input_dev;
 	int i;
 
-	input_dev = allocate_and_setup(hdev, DEVICE_NAME " (joypad)");
+	input_dev = allocate_and_setup(hdev, DEVICE_NAME " Joypad");
 	if (!input_dev)
 		return false;
 
