@@ -55,6 +55,12 @@ enum {
 	TOUCH_TWOFINGER
 };
 
+enum {
+	AXIS_X,
+	AXIS_Y,
+	AXIS_Z
+};
+
 /* Accelerometer min/max values
  * in order, X, Y and Z
  */
@@ -62,9 +68,9 @@ struct {
 	int min;
 	int max;
 } accel_limits[] = {
-	{ 0x1EA, 0x216 },
-	{ 0x1EA, 0x216 },
-	{ 0x1EC, 0x218 }
+	[AXIS_X] = { 0x1EA, 0x216 },
+	[AXIS_Y] = { 0x1EA, 0x216 },
+	[AXIS_Z] = { 0x1EC, 0x218 }
 };
 
 #define DEVICE_NAME "THQ uDraw Game Tablet for PS3"
@@ -211,11 +217,11 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 
 	/* accel */
 	x = (data[19] + (data[20] << 8));
-	x = clamp_accel(x, 0);
+	x = clamp_accel(x, AXIS_X);
 	y = (data[21] + (data[22] << 8));
-	y = clamp_accel(y, 1);
+	y = clamp_accel(y, AXIS_Y);
 	z = (data[23] + (data[24] << 8));
-	z = clamp_accel(z, 2);
+	z = clamp_accel(z, AXIS_Z);
 	input_report_abs(udraw->accel_input_dev, ABS_X, x);
 	input_report_abs(udraw->accel_input_dev, ABS_Y, y);
 	input_report_abs(udraw->accel_input_dev, ABS_Z, z);
