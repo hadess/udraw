@@ -204,8 +204,8 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 		input_report_abs(udraw->pen_input_dev, ABS_Y, y);
 	} else {
 		input_report_key(udraw->pen_input_dev, BTN_TOUCH, 0);
-		input_report_abs(udraw->pen_input_dev, ABS_PRESSURE, 0);
 		input_report_key(udraw->pen_input_dev, BTN_TOOL_PEN, 0);
+		input_report_abs(udraw->pen_input_dev, ABS_PRESSURE, 0);
 	}
 	input_sync(udraw->pen_input_dev);
 
