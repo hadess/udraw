@@ -38,16 +38,6 @@ MODULE_LICENSE("GPL");
  * - an accelerometer device
  */
 
-static const unsigned short udraw_joy_key_table[] = {
-	BTN_SOUTH,
-	BTN_NORTH,
-	BTN_EAST,
-	BTN_WEST,
-	BTN_SELECT,
-	BTN_START,
-	BTN_MODE
-};
-
 enum {
 	TOUCH_NONE,
 	TOUCH_PEN,
@@ -359,7 +349,6 @@ static bool udraw_setup_joypad(struct udraw *udraw,
 		struct hid_device *hdev)
 {
 	struct input_dev *input_dev;
-	int i;
 
 	input_dev = allocate_and_setup(hdev, DEVICE_NAME " Joypad");
 	if (!input_dev)
@@ -367,13 +356,18 @@ static bool udraw_setup_joypad(struct udraw *udraw,
 
 	input_dev->evbit[0] = BIT(EV_KEY) | BIT(EV_ABS);
 
+	set_bit(BTN_SOUTH, input_dev->keybit);
+	set_bit(BTN_NORTH, input_dev->keybit);
+	set_bit(BTN_EAST, input_dev->keybit);
+	set_bit(BTN_WEST, input_dev->keybit);
+	set_bit(BTN_SELECT, input_dev->keybit);
+	set_bit(BTN_START, input_dev->keybit);
+	set_bit(BTN_MODE, input_dev->keybit);
+
 	set_bit(ABS_X, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_X, -127, 127, 0, 0);
 	set_bit(ABS_Y, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_Y, -127, 127, 0, 0);
-
-	for (i = 0; i < ARRAY_SIZE(udraw_joy_key_table); i++)
-		set_bit(udraw_joy_key_table[i], input_dev->keybit);
 
 	udraw->joy_input_dev = input_dev;
 
