@@ -52,7 +52,7 @@ enum {
 	TOUCH_NONE,
 	TOUCH_PEN,
 	TOUCH_FINGER,
-	TOUCH_FINGERS
+	TOUCH_TWOFINGER
 };
 
 /* Accelerometer min/max values
@@ -113,7 +113,7 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	else if (data[11] == 0x80)
 		touch = TOUCH_FINGER;
 	else
-		touch = TOUCH_FINGERS;
+		touch = TOUCH_TWOFINGER;
 
 	/* joypad */
 	input_report_key(udraw->joy_input_dev, BTN_WEST, data[0] & 1);
@@ -174,12 +174,12 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	}
 
 	/* touchpad */
-	if (touch == TOUCH_FINGER || touch == TOUCH_FINGERS) {
+	if (touch == TOUCH_FINGER || touch == TOUCH_TWOFINGER) {
 		input_report_key(udraw->touch_input_dev, BTN_TOUCH, 1);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_FINGER,
 				touch == TOUCH_FINGER);
 		input_report_key(udraw->touch_input_dev, BTN_TOOL_DOUBLETAP,
-				touch == TOUCH_FINGERS);
+				touch == TOUCH_TWOFINGER);
 
 		input_report_abs(udraw->touch_input_dev, ABS_X, x);
 		input_report_abs(udraw->touch_input_dev, ABS_Y, y);
