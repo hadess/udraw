@@ -35,7 +35,7 @@ MODULE_LICENSE("GPL");
  * - the touch area which works as a touchpad
  * - the tablet area which works as a touchpad/drawing tablet
  * - a joypad with a d-pad, and 7 buttons
- * - an optional, disabled by default, accelerometer device
+ * - an accelerometer device
  */
 
 static const unsigned short udraw_joy_key_table[] = {
