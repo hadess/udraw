@@ -79,6 +79,11 @@ struct udraw {
 	struct input_dev *pen_input_dev;
 	struct input_dev *accel_input_dev;
 	struct hid_device *hdev;
+
+	int last_one_finger_x;
+	int last_one_finger_y;
+	int last_two_finger_x;
+	int last_two_finger_y;
 };
 
 static int clamp_accel(int axis, int offset)
@@ -167,6 +172,35 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 			x = data[15] * 256 + data[17];
 		if (data[16] != 0x0F)
 			y = data[16] * 256 + data[18];
+	}
+
+	if (touch == TOUCH_FINGER) {
+		/* Save the last one-finger touch */
+		udraw->last_one_finger_x = x;
+		udraw->last_one_finger_y = y;
+		udraw->last_two_finger_x = -1;
+		udraw->last_two_finger_y = -1;
+	} else if (touch == TOUCH_TWOFINGER) {
+		/* We have a problem because x/y is the one for the
+		 * second finger but we want the first finger given
+		 * to user-space otherwise it'll look as if it jumped.
+		 */
+		if (udraw->last_two_finger_x == -1) {
+			/* Save the position of the 2nd finger */
+			udraw->last_two_finger_x = x;
+			udraw->last_two_finger_y = y;
+
+			x = udraw->last_one_finger_x;
+			y = udraw->last_one_finger_y;
+		} else {
+			/* Offset the 2-finger coords using the
+			 * saved data from the first finger
+			 */
+			x = x - (udraw->last_two_finger_x
+				- udraw->last_one_finger_x);
+			y = y - (udraw->last_two_finger_y
+				- udraw->last_one_finger_y);
+		}
 	}
 
 	/* touchpad */
@@ -384,6 +418,8 @@ static int udraw_probe(struct hid_device *hdev, const struct hid_device_id *id)
 		return -ENOMEM;
 
 	udraw->hdev = hdev;
+	udraw->last_two_finger_x = -1;
+	udraw->last_two_finger_y = -1;
 
 	hid_set_drvdata(hdev, udraw);
 
