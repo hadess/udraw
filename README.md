@@ -1,6 +1,6 @@
 # THQ uDraw Game Tablet for PS3 Linux driver
 
-After compiling with `make` and `make install` (as root or through `sudo`),
+After compiling with `make` and `make install` (the latter as root or through `sudo`),
 you'll need to create a few files to load the driver correctly.
 
 Create a `/etc/udev/load_hid_udraw.sh` file with the content:
