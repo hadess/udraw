@@ -194,6 +194,9 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 		 * We have a problem because x/y is the one for the
 		 * second finger but we want the first finger given
 		 * to user-space otherwise it'll look as if it jumped.
+		 *
+		 * See the udraw struct definition for why this was
+		 * implemented this way.
 		 */
 		if (udraw->last_two_finger_x == -1) {
 			/* Save the position of the 2nd finger */
