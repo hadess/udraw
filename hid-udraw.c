@@ -316,10 +316,8 @@ static bool udraw_setup_touch(struct udraw *udraw,
 
 	input_dev->evbit[0] = BIT(EV_ABS) | BIT(EV_KEY);
 
-	set_bit(ABS_X, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_X, 0, RES_X, 1, 0);
 	input_abs_set_res(input_dev, ABS_X, RES_X / WIDTH);
-	set_bit(ABS_Y, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_Y, 0, RES_Y, 1, 0);
 	input_abs_set_res(input_dev, ABS_Y, RES_Y / HEIGHT);
 
@@ -345,13 +343,10 @@ static bool udraw_setup_pen(struct udraw *udraw,
 
 	input_dev->evbit[0] = BIT(EV_ABS) | BIT(EV_KEY);
 
-	set_bit(ABS_X, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_X, 0, RES_X, 1, 0);
 	input_abs_set_res(input_dev, ABS_X, RES_X / WIDTH);
-	set_bit(ABS_Y, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_Y, 0, RES_Y, 1, 0);
 	input_abs_set_res(input_dev, ABS_Y, RES_Y / HEIGHT);
-	set_bit(ABS_PRESSURE, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_PRESSURE,
 			0, MAX_PRESSURE, 0, 0);
 
@@ -377,11 +372,8 @@ static bool udraw_setup_accel(struct udraw *udraw,
 	input_dev->evbit[0] = BIT(EV_ABS);
 
 	/* 1G accel is reported as ~256, so clamp to 2G */
-	set_bit(ABS_X, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_X, -512, 512, 0, 0);
-	set_bit(ABS_Y, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_Y, -512, 512, 0, 0);
-	set_bit(ABS_Z, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_Z, -512, 512, 0, 0);
 
 	set_bit(INPUT_PROP_ACCELEROMETER, input_dev->propbit);
@@ -410,9 +402,7 @@ static bool udraw_setup_joypad(struct udraw *udraw,
 	set_bit(BTN_START, input_dev->keybit);
 	set_bit(BTN_MODE, input_dev->keybit);
 
-	set_bit(ABS_X, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_X, -127, 127, 0, 0);
-	set_bit(ABS_Y, input_dev->absbit);
 	input_set_abs_params(input_dev, ABS_Y, -127, 127, 0, 0);
 
 	udraw->joy_input_dev = input_dev;
