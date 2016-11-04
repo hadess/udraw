@@ -51,7 +51,8 @@ enum {
 	AXIS_Z
 };
 
-/* Accelerometer min/max values
+/*
+ * Accelerometer min/max values
  * in order, X, Y and Z
  */
 struct {
@@ -80,7 +81,8 @@ struct udraw {
 	struct input_dev *accel_input_dev;
 	struct hid_device *hdev;
 
-	/* The device's two-finger support is pretty unreliable, as
+	/*
+	 * The device's two-finger support is pretty unreliable, as
 	 * the device could report a single touch when the two fingers
 	 * are too close together, and the distance between fingers, even
 	 * though reported is not in pixels, but in an arbitrary unit.
@@ -189,7 +191,8 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 		udraw->last_two_finger_x = -1;
 		udraw->last_two_finger_y = -1;
 	} else if (touch == TOUCH_TWOFINGER) {
-		/* We have a problem because x/y is the one for the
+		/*
+		 * We have a problem because x/y is the one for the
 		 * second finger but we want the first finger given
 		 * to user-space otherwise it'll look as if it jumped.
 		 */
@@ -201,7 +204,8 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 			x = udraw->last_one_finger_x;
 			y = udraw->last_one_finger_y;
 		} else {
-			/* Offset the 2-finger coords using the
+			/*
+			 * Offset the 2-finger coords using the
 			 * saved data from the first finger
 			 */
 			x = x - (udraw->last_two_finger_x
