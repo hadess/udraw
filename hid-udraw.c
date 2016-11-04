@@ -85,7 +85,7 @@ struct udraw {
 	 * The device's two-finger support is pretty unreliable, as
 	 * the device could report a single touch when the two fingers
 	 * are too close together, and the distance between fingers, even
-	 * though reported is not in pixels, but in an arbitrary unit.
+	 * though reported is not in the same unit as the touches.
 	 *
 	 * We'll make do without it, and try to report the first touch
 	 * as reliably as possible.
