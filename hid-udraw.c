@@ -58,9 +58,9 @@ struct {
 	int min;
 	int max;
 } accel_limits[] = {
-	[AXIS_X] = { 0x1EA, 0x216 },
-	[AXIS_Y] = { 0x1EA, 0x216 },
-	[AXIS_Z] = { 0x1EC, 0x218 }
+	[AXIS_X] = { 490, 534 },
+	[AXIS_Y] = { 490, 534 },
+	[AXIS_Z] = { 492, 536 }
 };
 
 #define DEVICE_NAME "THQ uDraw Game Tablet for PS3"
@@ -70,8 +70,8 @@ struct {
 /* size in mm */
 #define WIDTH  160
 #define HEIGHT 90
-#define PRESSURE_OFFSET 0x71
-#define MAX_PRESSURE (0xFF - PRESSURE_OFFSET)
+#define PRESSURE_OFFSET 113
+#define MAX_PRESSURE (255 - PRESSURE_OFFSET)
 
 struct udraw {
 	struct input_dev *joy_input_dev;
@@ -113,7 +113,7 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 	int touch;
 	int x, y, z;
 
-	if (len != 0x1B)
+	if (len != 27)
 		return 0;
 
 	if (data[11] == 0x00)
