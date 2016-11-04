@@ -128,13 +128,13 @@ static int udraw_raw_event(struct hid_device *hdev, struct hid_report *report,
 
 	/* joypad */
 	input_report_key(udraw->joy_input_dev, BTN_WEST, data[0] & 1);
-	input_report_key(udraw->joy_input_dev, BTN_SOUTH, data[0] & 2);
-	input_report_key(udraw->joy_input_dev, BTN_EAST, data[0] & 4);
-	input_report_key(udraw->joy_input_dev, BTN_NORTH, data[0] & 8);
+	input_report_key(udraw->joy_input_dev, BTN_SOUTH, !!(data[0] & 2));
+	input_report_key(udraw->joy_input_dev, BTN_EAST, !!(data[0] & 4));
+	input_report_key(udraw->joy_input_dev, BTN_NORTH, !!(data[0] & 8));
 
-	input_report_key(udraw->joy_input_dev, BTN_SELECT, data[1] & 1);
-	input_report_key(udraw->joy_input_dev, BTN_START, data[1] & 2);
-	input_report_key(udraw->joy_input_dev, BTN_MODE, data[1] & 16);
+	input_report_key(udraw->joy_input_dev, BTN_SELECT, !!(data[1] & 1));
+	input_report_key(udraw->joy_input_dev, BTN_START, !!(data[1] & 2));
+	input_report_key(udraw->joy_input_dev, BTN_MODE, !!(data[1] & 16));
 
 	x = y = 0;
 	switch (data[2]) {
