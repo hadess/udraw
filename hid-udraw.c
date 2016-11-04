@@ -30,8 +30,7 @@ MODULE_LICENSE("GPL");
  */
 
 /*
- * The device is setup with multiple input devices to make it easier
- * to handle in user-space:
+ * The device is setup with multiple input devices:
  * - the touch area which works as a touchpad
  * - the tablet area which works as a touchpad/drawing tablet
  * - a joypad with a d-pad, and 7 buttons
