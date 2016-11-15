@@ -1,6 +1,6 @@
-MODULE_NAME := hid_udraw_standalone
+MODULE_NAME := hid_udraw_ps3_standalone
 
-MODULE_FILENAME := hid-udraw
+MODULE_FILENAME := hid-udraw-ps3
 
 LINUXINCLUDE := -I$(PWD)/include $(LINUXINCLUDE)
 
